@@ -93,6 +93,20 @@ export function makeChatBot({api, directory, appUrl}) {
       settings.accessReportedAt=new Date().toISOString();await save();
     });
   }
-  return {handle,confirmAccess};
+  async function applyState(userId, observation){
+    return withUser(userId,async(settings,save)=>{
+      if(!observation)return {ok:true,applied:false,reason:'no_recent_observation'};
+      const previous=settings.ouraStatus;
+      if(previous && Date.parse(observation.observedAt)<Date.parse(previous.observedAt))return {ok:true,applied:false,reason:'older_observation'};
+      const emojiId=settings[observation.state]?.id;
+      if(!emojiId)return {ok:true,applied:false,reason:'emoji_not_selected'};
+      const changed=previous?.emojiId!==emojiId;
+      if(changed)await api('setUserEmojiStatus',{user_id:userId,emoji_status_custom_emoji_id:emojiId});
+      settings.ouraStatus={...observation,emojiId};
+      await save();
+      return {ok:true,applied:changed,state:observation.state,observedAt:observation.observedAt,reason:changed?'updated':'unchanged'};
+    });
+  }
+  return {handle,confirmAccess,applyState};
 }
 // endregion chat-settings

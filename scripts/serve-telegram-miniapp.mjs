@@ -4,6 +4,7 @@ import { readFile, writeFile, mkdir, rename } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { makeChatBot } from './telegram-chat.mjs';
+import { inferOuraState } from './oura-state.mjs';
 
 // region telegram-auth
 export function validateInitData(raw, token, now = Date.now()) {
@@ -75,13 +76,23 @@ export function makeServer({ token, directory, api, fileDownload, webhookSecret,
         return send(200, images.get(imageId), 'image/webp');
       }
       const isWebhook=path==='/oura-status/telegram-webhook';
-      if (request.method !== 'POST' || !['/oura-status/api/catalog','/oura-status/api/preferences','/oura-status/api/access','/oura-status/telegram-webhook'].includes(path)) return send(404, {error:'Не найдено'});
+      const isOura=path==='/oura-status/api/oura';
+      if (request.method !== 'POST' || !['/oura-status/api/catalog','/oura-status/api/preferences','/oura-status/api/access','/oura-status/api/oura','/oura-status/telegram-webhook'].includes(path)) return send(404, {error:'Не найдено'});
       if(isWebhook && (!webhookSecret || request.headers['x-telegram-bot-api-secret-token']!==webhookSecret))return send(401,{error:'Unauthorized'});
+      if(isOura){
+        const supplied=Buffer.from(request.headers['x-oura-bridge-secret']||'');
+        const expected=Buffer.from(webhookSecret||'');
+        if(!expected.length||supplied.length!==expected.length||!timingSafeEqual(supplied,expected))return send(401,{error:'Unauthorized'});
+      }
       let raw = '';
       for await (const chunk of request) { raw += chunk; if (Buffer.byteLength(raw) > 32768) return send(413, {error:'Слишком большой запрос'}); }
       let body;
       try { body = JSON.parse(raw); } catch { return send(400, {error:'Некорректный запрос'}); }
       if(isWebhook){await bot.handle(body);return send(200,{ok:true});}
+      if(isOura){
+        if(!Number.isSafeInteger(body.userId)||body.userId<=0||!['heartrate','sleep','workout','daily_activity'].includes(body.kind)||!body.data||typeof body.data!=='object')return send(400,{error:'Invalid observation'});
+        return send(200,await bot.applyState(body.userId,inferOuraState(body.kind,body.data)));
+      }
       let userId;
       try { userId = validateInitData(body.initData, token); } catch { return send(401, {error:'Открой Mini App заново в Telegram.'}); }
       if(path.endsWith('/access')){await bot.confirmAccess(userId);return send(200,{ok:true});}

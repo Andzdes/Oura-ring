@@ -1,6 +1,6 @@
 FROM node:24-alpine
 WORKDIR /app
-COPY --chown=node:node scripts/serve-telegram-miniapp.mjs scripts/telegram-chat.mjs scripts/configure-telegram.mjs ./scripts/
+COPY --chown=node:node scripts/serve-telegram-miniapp.mjs scripts/telegram-chat.mjs scripts/oura-state.mjs scripts/configure-telegram.mjs ./scripts/
 COPY --chown=node:node web/telegram-status.html ./web/
 RUN mkdir /data && chown node:node /data
 USER node

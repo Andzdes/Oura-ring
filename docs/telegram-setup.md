@@ -55,3 +55,11 @@ Task9 UX: already-approved access shows a stable 'Разрешение уже в
 Public HTTPS health200 at https://oura.8n8n.online/oura-status/health. Existing sleep/awake custom emoji selections migrated through service-signed authenticated preferences request (one-time backend migration, not a captured Telegram session). Telegram webhook switched to https://oura.8n8n.online/oura-status/telegram-webhook with same secret, allowed_updates message/callback_query. BotFather Main App URL edited via native UI and reopened to verify saved URL. Actual user /settings sent via Telegram Desktop at01:57 returned both migrated choices from server. getChat confirmed current status matched saved awake emoji; idempotent setUserEmojiStatus returnedtrue. Local server73754 stopped after server reply confirmed.
 
 Task1 markedDone: latest real Oura execution81856 at01:21:49 succeeded, multiple earlier successes. Task4 still needed: approximate state inference and server-side status action connected to existing n8n workflow. Task11 persistent gateway-net Compose changes tested locally and ready for user git pull/rebuild; no SSH edits performed. Old server Compose manual network attachment survives only until container recreation.
+
+## Oura bridge endpoint
+
+POST `/oura-status/api/oura` accepts `{userId, kind, data}` for `heartrate`, `daily_activity`, `sleep`, or `workout`. `X-Oura-Bridge-Secret` must equal the existing `TELEGRAM_WEBHOOK_SECRET`; n8n stores it in encrypted Header Auth credentials. The bot reads the selected emoji from its persistent user settings and calls Telegram `setUserEmojiStatus`.
+
+Observations older than 90 minutes or more than one minute in the future are ignored. Sleep-labelled heart rate indicates sleep; awake/workout/live heart rate, movement activity classes, completed sleep and workout records indicate awake. Rest alone is inconclusive. This is approximate inference, dependent on Oura cloud synchronization. No observation retains the previous status. Repeated states and older observations do not trigger repeated Telegram calls; changing the chosen emoji takes effect on the next recent observation. State is persisted across container restarts.
+
+Verification: `node scripts/test-oura-status.mjs`, existing chat/permission/integration checks, Docker build. n8n hookup and server deployment still pending.
