@@ -1,5 +1,7 @@
 # Current work
 
+Latest investigation: added standalone manual `Check Latest Heart Rate` HTTP node in existing workflow, existing OAuth Oura Ring. latest=true returned awake / 74 bpm / 2026-09-23T00:24:35Z, age 4h40 at 05:04:50Z. Last-hour query 04:00–05:04:50Z returned empty data and null next_token. Restored latest=true. Manual diagnostic node only, saved draft, no scheduling or extra workflow. Next useful check is latest after user manually syncs Oura to isolate stale upload vs missing measurements. Do not claim current awake from this old sample.
+
 Latest fix: real Oura events 81812/81813 reached callback but were rejected invalid_timestamp because Oura sends 13-digit Unix milliseconds, not seconds. Fixed generator and live Validate Oura Event, published 'Fix Oura millisecond timestamp'. Signed synthetic milliseconds POST returned 202. Regression test includes actual header 1790138124521 with frozen receipt time and rejects expired/future/seconds timestamps. Genuine delivery is proven; successful processing of a fresh genuine event still needs confirmation. Do not open duplicate workflow tabs: user explicitly forbids this after conflicting editors. Only original tab 944051178 remains; extra 944051184 closed.
 
 User wants Oura asleep/awake -> Telegram emoji, tolerates 30min delay. No Antigravity this session. Be concise, act; user frustrated by excess caution and extra workflows. MUST use existing n8n workflow Oura Ring, id OSdcjaQzj3Bl0n19. Old nodes user explicitly authorized replacing. Repo task CLI task 1 In Progress.
