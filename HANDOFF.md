@@ -45,3 +45,5 @@ Crypto credential has client secret encrypted; OAuth still works. Don't read bro
 Task5 completed: permission button fixed. Calls native requestEmojiStatusAccess on open; granted disables+labels button, denied enables retry. Permission dialog may appear if absent. Public HTML updated without server restart; regression and integration tests pass.
 
 Task6: clicking either state now directly opens modal full RestrictedEmoji palette997. No quick subset in UI. Full catalog cached per app session, lazy thumbnails, selecting closes dialog; arbitrary pack loading retained inside dialog. Published HTML200 verified. VM interaction check exercised both buttons, all997 entries, selection and save enabling; existing tests pass.
+
+Task7 current: custom palette removed from live page at user's explicit request. Native picker research found documented tg://settings/emoji-status and tg://chats/emoji-status; actual client support not tested and no selection callback. Options getChat current emoji status or receive custom emoji MessageEntity in bot chat; no replacement yet. See latest docs/telegram-setup.md section. Do not recreate custom picker.

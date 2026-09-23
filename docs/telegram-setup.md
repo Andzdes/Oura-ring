@@ -25,3 +25,13 @@ Server exec session is now 93757 (port 8766). Tailscale strips the mounted prefi
 Task5: permission button now remains disabled after granted=true and reads 'Смена статуса разрешена'. Each opening calls requestEmojiStatusAccess to obtain a fresh native result; Telegram may show its permission dialog when access is absent. No separate read-only permission getter exists in the Mini App API. No stale local permission cache. Regression: node scripts/test-telegram-permission.mjs (granted, reopening, denied), plus existing integration tests pass; public HTML fix verified200.
 
 Task6: state buttons open a full emoji dialog directly (all997 RestrictedEmoji items); quick subset removed from UI. Other packs load inside the dialog. Telegram does not expose its native global emoji picker to Mini Apps, so this is an in-app palette, not access to every custom pack ever published.
+
+## Native Telegram picker research (task 7)
+
+User rejected the homemade palette. Removed its HTML, CSS, grid, pack picker and client-side selection code from the live Mini App. Existing private preferences and backend validation retained. No replacement selector implemented yet.
+
+Official deep-link docs explicitly list tg://settings/emoji-status and tg://chats/emoji-status for opening Telegram's own status picker: https://core.telegram.org/api/links#settings-links and https://core.telegram.org/api/links#chat-list-links . Client support and launching this from the Mini App remain unverified; these are tg: links, not documented t.me equivalents. They change the user's current status and do not provide a callback returning a selection to the Mini App.
+
+The official Mini App SDK https://telegram.org/js/telegram-web-app.js exposes setEmojiStatus with an already-known custom_emoji_id, not a picker returning an ID. Native bridge specification agrees: https://core.telegram.org/api/web-events#web-app-set-emoji-status . Thus opening a status picker and receiving a chosen ID are separate problems; earlier blanket claim that the native picker cannot be opened was too broad.
+
+Two documented building blocks for completing setup without a custom palette: (1) user selects their actual current status in native Telegram, then backend getChat reads emoji_status_custom_emoji_id; this temporarily changes the real profile status, and requires verifying access to the private chat; (2) user sends a custom emoji from the native chat palette to the bot, which receives MessageEntity.custom_emoji_id. Sources: https://core.telegram.org/bots/api#chatfullinfo and https://core.telegram.org/bots/api#messageentity . Neither flow implemented or represented as tested.
