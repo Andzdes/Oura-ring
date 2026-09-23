@@ -23,3 +23,5 @@ Run node scripts/test-telegram-miniapp.mjs. Verified auth/tampering/expiry, inva
 Server exec session is now 93757 (port 8766). Tailscale strips the mounted prefix; server accepts both prefixed local and stripped proxy routes. Still temporary PC hosting.
 
 Task5: permission button now remains disabled after granted=true and reads 'Смена статуса разрешена'. Each opening calls requestEmojiStatusAccess to obtain a fresh native result; Telegram may show its permission dialog when access is absent. No separate read-only permission getter exists in the Mini App API. No stale local permission cache. Regression: node scripts/test-telegram-permission.mjs (granted, reopening, denied), plus existing integration tests pass; public HTML fix verified200.
+
+Task6: state buttons open a full emoji dialog directly (all997 RestrictedEmoji items); quick subset removed from UI. Other packs load inside the dialog. Telegram does not expose its native global emoji picker to Mini Apps, so this is an in-app palette, not access to every custom pack ever published.
