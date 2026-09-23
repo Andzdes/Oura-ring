@@ -12,3 +12,14 @@ function open(granted){
 for(let i=0;i<2;i++){const s=open(true);assert.equal(s.button.disabled,true,'Already granted access must disable the button on every opening');assert.equal(s.button.textContent,'Смена статуса разрешена');}
 const denied=open(false);assert.equal(denied.button.disabled,false);assert.equal(denied.button.textContent,'Разрешить смену статуса');
 console.log('PASS permission granted/reopened/denied');
+// region no-flash-regression
+let closed=0;
+const elements=new Map();
+const element=id=>{if(!elements.has(id))elements.set(id,{});return elements.get(id);};
+runInNewContext(code,{app:{initData:'signed',isVersionAtLeast:()=>true,ready(){},expand(){},close(){closed++;},requestEmojiStatusAccess(callback){callback(true);}},el:element,result:{},fetch:async()=>({ok:true})});
+await new Promise(resolve=>setTimeout(resolve,0));
+assert.equal(closed,0,'Permission confirmation must not close the window automatically');
+assert.equal(element('return').hidden,false);
+element('return').onclick();assert.equal(closed,1);
+console.log('PASS no automatic close; explicit return closes window');
+// endregion no-flash-regression

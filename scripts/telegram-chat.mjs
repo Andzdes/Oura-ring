@@ -46,7 +46,12 @@ export function makeChatBot({api, directory, appUrl}) {
       const command=text.match(/^\/(start|connect|sleep|awake|settings)(?:@[A-Za-z0-9_]+)?(?:\s|$)/)?.[1];
       if(command==='start'||command==='connect'){
         await clearPending(userId,settings);
-        await send(userId,'Разреши боту менять твой эмодзи-статус.',{reply_markup:{inline_keyboard:[[{text:'Connect',web_app:{url:appUrl}}]]}});
+        if(settings.accessReportedAt && command==='start'){
+          await send(userId,'Подключено.\n/sleep — эмодзи для сна\n/awake — эмодзи для бодрствования');
+        }else{
+          const prompt=await send(userId,'Разреши боту менять твой эмодзи-статус.',{reply_markup:{inline_keyboard:[[{text:'Connect',web_app:{url:appUrl}}]]}});
+          settings.connectPrompt=prompt.message_id;
+        }
       }else if(command==='sleep'||command==='awake'){
         await clearPending(userId,settings);
         settings.pending=command;
@@ -81,6 +86,10 @@ export function makeChatBot({api, directory, appUrl}) {
     return withUser(userId,async(settings,save)=>{
       // Client reports native approval; actual Telegram authorization remains enforced by Bot API.
       if(!settings.accessReportedAt)await send(userId,'Подключено.\n/sleep — выбрать эмодзи для сна\n/awake — выбрать эмодзи для бодрствования');
+      if(settings.connectPrompt){
+        await api('editMessageText',{chat_id:userId,message_id:settings.connectPrompt,text:'Подключено.',reply_markup:{inline_keyboard:[]}}).catch(()=>{});
+        delete settings.connectPrompt;
+      }
       settings.accessReportedAt=new Date().toISOString();await save();
     });
   }

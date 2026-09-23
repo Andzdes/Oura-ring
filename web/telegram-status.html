@@ -12,6 +12,7 @@ body{font:16px system-ui;margin:0;padding:24px 18px;background:var(--tg-theme-bg
 <h1>Connect</h1>
 <p>Разреши боту менять твой эмодзи-статус.</p>
 <button id="allow" disabled>Разрешить смену статуса</button>
+<button id="return" hidden>Вернуться в чат</button>
 <p id="result" role="status" aria-live="polite"></p>
 </main>
 <!-- endregion layout -->
@@ -24,7 +25,8 @@ if(!app?.initData){result.textContent='Открой эту страницу кн
 else if(!app.isVersionAtLeast('8.0')){result.textContent='Обнови Telegram: требуется поддержка Mini Apps 8.0.';}
 else{
   app.ready();app.expand();
-  const checkAccess=()=>{
+  el('return').onclick=()=>app.close();
+  const checkAccess=(requestedByClick=false)=>{
     el('allow').disabled=true;
     el('allow').textContent='Проверяю разрешение…';
     try{
@@ -36,7 +38,11 @@ else{
           try{
             const response=await fetch('/oura-status/api/access',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({initData:app.initData})});
             if(!response.ok)throw new Error('save');
-            app.close();
+            if(requestedByClick){app.close();}
+            else{
+              result.textContent='Разрешение уже выдано. Настройки доступны в чате.';
+              el('return').hidden=false;
+            }
           }catch{result.textContent='Разрешение получено. Вернись в чат: /sleep и /awake.';}
         }
       });
@@ -46,7 +52,7 @@ else{
       result.textContent='Не удалось проверить разрешение. Нажми кнопку ещё раз.';
     }
   };
-  el('allow').onclick=checkAccess;
+  el('allow').onclick=()=>checkAccess(true);
   checkAccess();
 }
 

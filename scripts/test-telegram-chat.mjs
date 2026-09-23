@@ -23,6 +23,7 @@ try{
  await bot.handle(message('/awake'));await bot.handle(message('☀️',123,[{type:'custom_emoji',custom_emoji_id:'100',offset:0,length:2}]));
  await bot.confirmAccess(123);await bot.confirmAccess(123);
  const settings=JSON.parse(await readFile(join(directory,'123.json')));assert.equal(settings.awake.id,'100');assert.equal(settings.sleep.id,'99');assert.ok(settings.accessReportedAt);
+ await bot.handle(message('/start'));assert.match(sent.at(-1).text,/Подключено/);assert.equal(sent.at(-1).reply_markup,undefined);
  await bot.handle(message('/settings'));assert.match(sent.at(-1).text,/Сон:/);
  await bot.handle(message('/sleep'));
  const oldButton=sent.at(-1).reply_markup.inline_keyboard[0][0];assert.equal(oldButton.text,'Cancel');

@@ -47,3 +47,5 @@ Live webhook: https://pc-rtx4060.tail30e8c8.ts.net:8443/oura-status/telegram-web
 Server session56228 replaces93757. Still depends on this PC/Tailscale. Real Telegram update processed (lastUpdateId211680116 observed) and accessReportedAt recorded. No sleep/awake emoji selected yet. Unsigned public webhook returns401. Tests: node scripts/test-telegram-chat.mjs, test-telegram-miniapp.mjs and test-telegram-permission.mjs all pass. Next task4 connects Oura to actual Telegram status switching; not implemented yet.
 
 Task8: cancel is now a contextual inline Cancel button on sleep/awake prompts, not a slash command. Command lists updated and verified in all configured scopes/languages. Selection tokens prevent stale cancellation. Callback queries enabled in webhook. Server session59722.
+
+Task9 UX: already-approved access shows a stable 'Разрешение уже выдано' page. Approval through explicit button retains automatic close. /start for previously connected users omits Connect; tracked connection prompt is edited after approval. Server session73754.
