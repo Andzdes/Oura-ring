@@ -3,6 +3,7 @@ import { createHmac, timingSafeEqual, randomUUID } from 'node:crypto';
 import { readFile, writeFile, mkdir, rename } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { makeChatBot } from './telegram-chat.mjs';
 
 // region telegram-auth
 export function validateInitData(raw, token, now = Date.now()) {
@@ -23,7 +24,7 @@ export function validateInitData(raw, token, now = Date.now()) {
 // endregion telegram-auth
 
 // region miniapp-server
-export function makeServer({ token, directory, api, fileDownload }) {
+export function makeServer({ token, directory, api, fileDownload, webhookSecret }) {
   const stickers = new Map(), packs = new Map(), images = new Map();
   const favorites = new Set(['😴','💤','🌙','🛌','🥱','☀️','🌞','👀','🙂','😀','💻','☕','🚶','🏃','💪','🟢']);
   const call = api || (async (method, body) => {
@@ -33,6 +34,7 @@ export function makeServer({ token, directory, api, fileDownload }) {
     return data.result;
   });
   const describe = s => ({ id:s.custom_emoji_id, emoji:s.emoji || '◇', image:s.thumbnail ? `/oura-status/api/image/${s.custom_emoji_id}` : null });
+  const bot=makeChatBot({api:call,directory,appUrl:'https://pc-rtx4060.tail30e8c8.ts.net:8443/oura-status'});
   async function pack(name) {
     if (!/^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(name)) throw new Error('pack');
     if (!packs.has(name)) {
@@ -71,13 +73,17 @@ export function makeServer({ token, directory, api, fileDownload }) {
         }
         return send(200, images.get(imageId), 'image/webp');
       }
-      if (request.method !== 'POST' || !['/oura-status/api/catalog','/oura-status/api/preferences'].includes(path)) return send(404, {error:'Не найдено'});
+      const isWebhook=path==='/oura-status/telegram-webhook';
+      if (request.method !== 'POST' || !['/oura-status/api/catalog','/oura-status/api/preferences','/oura-status/api/access','/oura-status/telegram-webhook'].includes(path)) return send(404, {error:'Не найдено'});
+      if(isWebhook && (!webhookSecret || request.headers['x-telegram-bot-api-secret-token']!==webhookSecret))return send(401,{error:'Unauthorized'});
       let raw = '';
       for await (const chunk of request) { raw += chunk; if (Buffer.byteLength(raw) > 32768) return send(413, {error:'Слишком большой запрос'}); }
       let body;
       try { body = JSON.parse(raw); } catch { return send(400, {error:'Некорректный запрос'}); }
+      if(isWebhook){await bot.handle(body);return send(200,{ok:true});}
       let userId;
       try { userId = validateInitData(body.initData, token); } catch { return send(401, {error:'Открой Mini App заново в Telegram.'}); }
+      if(path.endsWith('/access')){await bot.confirmAccess(userId);return send(200,{ok:true});}
       if (path.endsWith('/catalog')) {
         const value = await pack(body.pack || 'RestrictedEmoji');
         const list = body.pack ? value.stickers : value.stickers.filter(s => favorites.has(s.emoji));
@@ -107,6 +113,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
   const text = await readFile('D:/Documents/API_Keys/Telegram-my-service-bot.txt', 'utf8');
   const token = text.match(/\d{6,}:[A-Za-z0-9_-]{25,}/)?.[0];
   if (!token) throw new Error('Bot token not found');
-  makeServer({token, directory:'D:/Documents/API_Keys/oura-telegram-users'}).listen(8766, '127.0.0.1');
+  const {webhookSecret}=JSON.parse(await readFile('D:/Documents/API_Keys/oura-telegram-webhook.json','utf8'));
+  makeServer({token, webhookSecret, directory:'D:/Documents/API_Keys/oura-telegram-users'}).listen(8766, '127.0.0.1');
 }
 // endregion local-startup

@@ -9,9 +9,8 @@
 body{font:16px system-ui;margin:0;padding:24px 18px;background:var(--tg-theme-bg-color,#fff);color:var(--tg-theme-text-color,#222)}main{max-width:480px;margin:auto}h1{font-size:26px}p{line-height:1.5}button{font:inherit;padding:14px;border:0;border-radius:12px;width:100%;background:var(--tg-theme-button-color,#2481cc);color:var(--tg-theme-button-text-color,#fff)}button:disabled{opacity:.5}.hint{color:var(--tg-theme-hint-color,#68727e)}
 </style>
 <main>
-<h1>Статус Oura</h1>
-<p>Эмодзи для сна и бодрствования.</p>
-<p class="hint">Выбор эмодзи временно отключён: подключаем выбор через Telegram. Ранее сохранённые настройки сохранены.</p>
+<h1>Connect</h1>
+<p>Разреши боту менять твой эмодзи-статус.</p>
 <button id="allow" disabled>Разрешить смену статуса</button>
 <p id="result" role="status" aria-live="polite"></p>
 </main>
@@ -29,10 +28,17 @@ else{
     el('allow').disabled=true;
     el('allow').textContent='Проверяю разрешение…';
     try{
-      app.requestEmojiStatusAccess(granted=>{
+      app.requestEmojiStatusAccess(async granted=>{
         el('allow').disabled=granted;
         el('allow').textContent=granted?'Смена статуса разрешена':'Разрешить смену статуса';
         if(!granted)result.textContent='Разрешение не получено. Можно попробовать снова.';
+        if(granted){
+          try{
+            const response=await fetch('/oura-status/api/access',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({initData:app.initData})});
+            if(!response.ok)throw new Error('save');
+            app.close();
+          }catch{result.textContent='Разрешение получено. Вернись в чат: /sleep и /awake.';}
+        }
       });
     }catch{
       el('allow').disabled=false;
