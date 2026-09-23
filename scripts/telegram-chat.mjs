@@ -59,7 +59,16 @@ export function makeChatBot({api, directory, appUrl}) {
         const prompt=await send(userId,command==='sleep'?'Отправь эмодзи для сна.':'Отправь эмодзи для бодрствования.',{reply_markup:{inline_keyboard:[[{text:'Cancel',callback_data:`cancel:${settings.pendingToken}`}]]}});
         settings.pendingPrompt=prompt.message_id;
       }else if(command==='settings'){
-        await send(userId,`Сон: ${settings.sleep?.emoji||'не выбран'}\nБодрствование: ${settings.awake?.emoji||'не выбран'}\n\n/sleep — выбрать для сна\n/awake — выбрать для бодрствования`);
+        let summary='';
+        const entities=[];
+        for(const [state,label] of [['sleep','Сон'],['awake','Бодрствование']]){
+          summary+=`${label}: `;
+          const choice=settings[state];
+          const emoji=choice?.emoji||'🙂';
+          if(choice?.id)entities.push({type:'custom_emoji',offset:summary.length,length:emoji.length,custom_emoji_id:choice.id});
+          summary+=(choice?.id?emoji:'не выбран')+'\n';
+        }
+        await send(userId,summary+'\n/sleep — выбрать для сна\n/awake — выбрать для бодрствования',{entities});
       }else if(text.startsWith('/')){
         await send(userId,'/sleep — эмодзи для сна\n/awake — эмодзи для бодрствования\n/settings — настройки');
       }else if(settings.pending){
