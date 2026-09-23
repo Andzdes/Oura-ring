@@ -4,37 +4,65 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Статус Oura</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<!-- #region layout -->
 <style>
-body{font:17px system-ui;margin:0;padding:28px;background:var(--tg-theme-bg-color,#fff);color:var(--tg-theme-text-color,#222)}
-main{max-width:420px;margin:auto}h1{font-size:25px}p{line-height:1.5}button{font:inherit;padding:16px;border:0;border-radius:12px;width:100%;background:var(--tg-theme-button-color,#2481cc);color:var(--tg-theme-button-text-color,#fff);cursor:pointer}button:disabled{opacity:.5}#result{white-space:pre-line}
+body{font:16px system-ui;margin:0;padding:24px 18px;background:var(--tg-theme-bg-color,#fff);color:var(--tg-theme-text-color,#222)}main{max-width:480px;margin:auto}h1{font-size:26px;margin-top:0}p{line-height:1.5}.hint{color:var(--tg-theme-hint-color,#68727e);font-size:14px}button,input{font:inherit;box-sizing:border-box;border-radius:12px;padding:12px}button{border:0;background:var(--tg-theme-button-color,#2481cc);color:var(--tg-theme-button-text-color,#fff);cursor:pointer}button:disabled{opacity:.5;cursor:default}.wide{width:100%;margin-top:12px}.states{display:flex;gap:12px}.state{flex:1;border:2px solid transparent;background:var(--tg-theme-secondary-bg-color,#f0f3f6);color:inherit}.state[aria-pressed=true]{border-color:var(--tg-theme-button-color,#2481cc)}.chosen{display:block;font-size:34px;height:46px;margin-bottom:6px}.chosen img,.emoji img{height:40px;width:40px;object-fit:contain}.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin:16px 0}.emoji{padding:6px;background:var(--tg-theme-secondary-bg-color,#f0f3f6);color:inherit;font-size:28px;min-height:52px;border:2px solid transparent}.emoji[aria-pressed=true]{border-color:var(--tg-theme-button-color,#2481cc)}input{width:100%;background:var(--tg-theme-secondary-bg-color,#f0f3f6);color:inherit;border:1px solid var(--tg-theme-hint-color,#aaa);margin-top:10px}summary{cursor:pointer}#result{min-height:24px}details{margin-top:24px}
 </style>
 <main>
 <h1>Статус Oura</h1>
-<p>Разреши боту менять эмодзи возле твоего имени: сон или бодрствование.</p>
-<button id="allow" disabled>Разрешить смену статуса</button>
-<p id="result" role="status"></p>
+<p>Выбери эмодзи возле своего имени для каждого состояния.</p>
+<div class="states">
+<button class="state" id="sleep" aria-pressed="true"><span class="chosen">＋</span>Сплю</button>
+<button class="state" id="awake" aria-pressed="false"><span class="chosen">＋</span>Бодрствую</button>
+</div>
+<p id="pick-label" class="hint">Выбери эмодзи для сна</p>
+<div class="grid" id="catalog" aria-label="Эмодзи"></div>
+<button id="save" class="wide" disabled>Сохранить выбор</button>
+<button class="wide" id="standard" disabled>Все стандартные эмодзи</button><details><summary>Другой набор эмодзи</summary><label for="pack" class="hint">Ссылка t.me/addemoji/… или название набора</label><input id="pack" placeholder="https://t.me/addemoji/EmojiStatus"><button class="wide" id="load" disabled>Загрузить набор</button></details>
+<button id="allow" class="wide" disabled>Разрешить смену статуса</button>
+<p id="result" role="status" aria-live="polite"></p>
+<p class="hint">Сохранение выбора не меняет текущий статус. Автоматическая смена по данным кольца ещё не подключена.</p>
 </main>
+<!-- #endregion layout -->
 <script>
-// region permission-flow
+// #region selection-flow
 const app=window.Telegram?.WebApp;
-const button=document.getElementById('allow');
-const result=document.getElementById('result');
-if(!app?.initData){
-  result.textContent='Открой эту страницу кнопкой в @andrey_service_bot внутри Telegram.';
-}else if(!app.isVersionAtLeast('8.0')){
-  result.textContent='Обнови Telegram: требуется поддержка Mini Apps 8.0.';
-}else{
-  app.ready();
-  app.expand();
-  button.disabled=false;
-  button.onclick=()=>{
-    button.disabled=true;
-    app.requestEmojiStatusAccess(granted=>{
-      result.textContent=granted?'Разрешение получено. Бот может менять твой эмодзи-статус.':'Разрешение не получено. Можно попробовать снова.';
-      button.disabled=false;
-    });
-  };
+const el=id=>document.getElementById(id);
+const result=el('result');
+let active='sleep', choices={sleep:null,awake:null}, items=[];
+function icon(node,item){
+  node.replaceChildren();
+  if(!item){node.textContent='＋';return;}
+  if(item.image){const img=document.createElement('img');img.src=item.image;img.alt=item.emoji;img.loading='lazy';img.onerror=()=>{node.textContent=item.emoji;};node.append(img);}
+  else node.textContent=item.emoji;
 }
-// endregion permission-flow
+function render(){
+  for(const state of ['sleep','awake']){el(state).setAttribute('aria-pressed',String(active===state));icon(el(state).querySelector('.chosen'),choices[state]);}
+  el('pick-label').textContent=active==='sleep'?'Выбери эмодзи для сна':'Выбери эмодзи для бодрствования';
+  el('save').disabled=!choices.sleep||!choices.awake;
+  el('catalog').replaceChildren(...items.map(item=>{const b=document.createElement('button');b.className='emoji';b.setAttribute('aria-label',item.emoji);b.setAttribute('aria-pressed',String(choices[active]?.id===item.id));icon(b,item);b.onclick=()=>{choices[active]=item;result.textContent='Выбор изменён — сохрани настройки.';render();};return b;}));
+}
+async function api(route,body={}){
+  const response=await fetch('/oura-status/api/'+route,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({initData:app.initData,...body})});
+  const data=await response.json();if(!response.ok)throw new Error(data.error);return data;
+}
+async function load(pack){
+  el('load').disabled=true;result.textContent='Загружаю эмодзи…';
+  try{const data=await api('catalog',{pack});items=data.items;if(!choices.sleep&&!choices.awake&&data.preferences)choices=data.preferences;render();result.textContent=data.title;}
+  catch(error){result.textContent=error.message;}finally{el('load').disabled=false;el('standard').disabled=false;}
+}
+for(const state of ['sleep','awake'])el(state).onclick=()=>{active=state;render();};
+el('standard').onclick=()=>load('RestrictedEmoji');
+el('load').onclick=()=>{const value=el('pack').value.trim();const name=value.match(/^(?:https?:\/\/)?t\.me\/addemoji\/([A-Za-z0-9_]+)\/?(?:\?.*)?$/)?.[1]||value;if(!/^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(name)){result.textContent='Вставь ссылку на набор эмодзи.';return;}load(name);};
+el('save').onclick=async()=>{el('save').disabled=true;try{await api('preferences',{sleep:choices.sleep.id,awake:choices.awake.id});result.textContent='Оба эмодзи сохранены.';}catch(error){result.textContent=error.message;}finally{el('save').disabled=false;}};
+// #endregion selection-flow
+// #region permission-flow
+if(!app?.initData){result.textContent='Открой эту страницу кнопкой в @andrey_service_bot внутри Telegram.';}
+else if(!app.isVersionAtLeast('8.0')){result.textContent='Обнови Telegram: требуется поддержка Mini Apps 8.0.';}
+else{
+  app.ready();app.expand();el('allow').disabled=false;load();
+  el('allow').onclick=()=>{el('allow').disabled=true;app.requestEmojiStatusAccess(granted=>{result.textContent=granted?'Разрешение получено. Бот может менять твой эмодзи-статус.':'Разрешение не получено. Можно попробовать снова.';el('allow').disabled=false;});};
+}
+// #endregion permission-flow
 </script>
 </html>

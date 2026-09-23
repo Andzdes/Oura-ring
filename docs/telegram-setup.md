@@ -11,3 +11,13 @@ Temporary hosting: `node scripts/serve-telegram-miniapp.mjs`, currently running 
 Next user step: open https://t.me/andrey_service_bot?startapp and click the permission button, then approve Telegram's native dialog. Permission has NOT yet been granted or verified. Main App configuration alone does not authorize status updates. Afterwards obtain user ID, choose two custom emoji IDs, and test setUserEmojiStatus before connecting approximate Oura state.
 
 References: https://core.telegram.org/bots/webapps#initializing-mini-apps and https://core.telegram.org/bots/api#setuseremojistatus.
+
+## Emoji selection (task 3)
+
+The existing Mini App now has separate sleep/awake choices, real Telegram thumbnails, a quick selection (12 matching emoji from RestrictedEmoji), a button loading all 997 items in that pack, and loading any custom-emoji pack by name or t.me/addemoji link. EmojiStatus is only one pack with 93 items, not Telegram's total catalog.
+
+POST /oura-status/api/catalog loads choices and saved preferences. POST /oura-status/api/preferences saves both selections. Both verify Telegram initData HMAC and auth_date (24h maximum age). User identity comes only from signed data. Custom IDs are verified with getCustomEmojiStickers. Preferences are private per-user JSON files in D:/Documents/API_Keys/oura-telegram-users, atomically replaced. The bot token never goes to the page. Thumbnail bytes are proxied through /oura-status/api/image/:id, only for known Telegram stickers.
+
+Run node scripts/test-telegram-miniapp.mjs. Verified auth/tampering/expiry, invalid emoji rejection, per-user save/reload/isolation, replacement and JS syntax. Public HTTPS page, signed synthetic catalog request and thumbnail download all returned 200. No real user preferences or emoji-status permission confirmed yet. Saving preferences does not call setUserEmojiStatus. Next stage: user chooses two statuses and grants permission, then test Bot API status switching and connect existing n8n workflow.
+
+Server exec session is now 93757 (port 8766). Tailscale strips the mounted prefix; server accepts both prefixed local and stripped proxy routes. Still temporary PC hosting.
