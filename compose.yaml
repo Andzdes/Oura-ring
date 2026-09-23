@@ -1,0 +1,24 @@
+services:
+  oura-bot:
+    build: .
+    restart: unless-stopped
+    init: true
+    env_file: .env
+    ports:
+      - "127.0.0.1:${BIND_PORT:-8766}:8766"
+    environment:
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:?Set the public HTTPS URL ending in /oura-status}
+      HOST: 0.0.0.0
+      PORT: 8766
+      DATA_DIR: /data
+    volumes:
+      - bot-data:/data
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+volumes:
+  bot-data:

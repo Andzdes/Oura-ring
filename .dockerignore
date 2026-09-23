@@ -1,0 +1,7 @@
+**
+!Dockerfile
+!scripts/
+!scripts/serve-telegram-miniapp.mjs
+!scripts/telegram-chat.mjs
+!web/
+!web/telegram-status.html

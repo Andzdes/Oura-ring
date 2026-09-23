@@ -24,7 +24,7 @@ export function validateInitData(raw, token, now = Date.now()) {
 // endregion telegram-auth
 
 // region miniapp-server
-export function makeServer({ token, directory, api, fileDownload, webhookSecret }) {
+export function makeServer({ token, directory, api, fileDownload, webhookSecret, appUrl='https://pc-rtx4060.tail30e8c8.ts.net:8443/oura-status' }) {
   const stickers = new Map(), packs = new Map(), images = new Map();
   const favorites = new Set(['😴','💤','🌙','🛌','🥱','☀️','🌞','👀','🙂','😀','💻','☕','🚶','🏃','💪','🟢']);
   const call = api || (async (method, body) => {
@@ -34,7 +34,7 @@ export function makeServer({ token, directory, api, fileDownload, webhookSecret 
     return data.result;
   });
   const describe = s => ({ id:s.custom_emoji_id, emoji:s.emoji || '◇', image:s.thumbnail ? `/oura-status/api/image/${s.custom_emoji_id}` : null });
-  const bot=makeChatBot({api:call,directory,appUrl:'https://pc-rtx4060.tail30e8c8.ts.net:8443/oura-status'});
+  const bot=makeChatBot({api:call,directory,appUrl});
   async function pack(name) {
     if (!/^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(name)) throw new Error('pack');
     if (!packs.has(name)) {
@@ -59,6 +59,7 @@ export function makeServer({ token, directory, api, fileDownload, webhookSecret 
       const incoming = new URL(request.url, 'http://localhost').pathname;
       // Tailscale strips the mounted /oura-status prefix before proxying.
       const path = incoming.startsWith('/oura-status') ? incoming : `/oura-status${incoming}`;
+      if(request.method==='GET' && path==='/oura-status/health')return send(200,{ok:true});
       if (request.method === 'GET' && ['/oura-status','/oura-status/'].includes(path)) return send(200, await readFile(new URL('../web/telegram-status.html', import.meta.url)), 'text/html; charset=utf-8');
       const imageId = path.match(/^\/oura-status\/api\/image\/([0-9]+)$/)?.[1];
       if (request.method === 'GET' && imageId) {
@@ -110,10 +111,13 @@ export function makeServer({ token, directory, api, fileDownload, webhookSecret 
 
 // region local-startup
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  const text = await readFile('D:/Documents/API_Keys/Telegram-my-service-bot.txt', 'utf8');
+  const text = process.env.TELEGRAM_BOT_TOKEN || await readFile(process.env.TELEGRAM_TOKEN_FILE || 'D:/Documents/API_Keys/Telegram-my-service-bot.txt', 'utf8');
   const token = text.match(/\d{6,}:[A-Za-z0-9_-]{25,}/)?.[0];
   if (!token) throw new Error('Bot token not found');
-  const {webhookSecret}=JSON.parse(await readFile('D:/Documents/API_Keys/oura-telegram-webhook.json','utf8'));
-  makeServer({token, webhookSecret, directory:'D:/Documents/API_Keys/oura-telegram-users'}).listen(8766, '127.0.0.1');
+  const webhookSecret=process.env.TELEGRAM_WEBHOOK_SECRET || JSON.parse(await readFile(process.env.WEBHOOK_SECRET_FILE || 'D:/Documents/API_Keys/oura-telegram-webhook.json','utf8')).webhookSecret;
+  if(!/^[A-Za-z0-9_-]{1,256}$/.test(webhookSecret))throw new Error('Invalid webhook secret');
+  const server=makeServer({token,webhookSecret,directory:process.env.DATA_DIR || 'D:/Documents/API_Keys/oura-telegram-users',appUrl:process.env.PUBLIC_APP_URL});
+  server.listen(Number(process.env.PORT || 8766),process.env.HOST || '127.0.0.1');
+  for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>server.close(()=>process.exit(0)));
 }
 // endregion local-startup

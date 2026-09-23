@@ -1,0 +1,10 @@
+.task-manager
+AGENTS.md
+project_map.md
+.projectmapignore
+.env
+.env.*
+!.env.example
+.secrets/
+data/
+node_modules/
