@@ -64,8 +64,9 @@ if (!/^[A-F0-9]{64}$/.test(supplied) || !/^[A-F0-9]{64}$/.test(calculated) || !s
   return reject(401, 'invalid_signature');
 }
 const timestamp = typeof input.json.timestamp === 'string' ? input.json.timestamp : '';
-const timestampSeconds = /^\\d{10}$/.test(timestamp) ? Number(timestamp) : NaN;
-if (!Number.isSafeInteger(timestampSeconds) || Math.abs(Math.floor(Date.now() / 1000) - timestampSeconds) > 300) {
+// Oura signs the original millisecond timestamp; only convert for the age check.
+const timestampMilliseconds = /^[0-9]{13}$/.test(timestamp) ? Number(timestamp) : NaN;
+if (!Number.isSafeInteger(timestampMilliseconds) || Math.abs(Date.now() - timestampMilliseconds) > 300000) {
   return reject(401, 'invalid_timestamp');
 }
 const body = input.json.body;

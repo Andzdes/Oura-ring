@@ -11,7 +11,7 @@ const runCode = async (code, item, context = {}) => {
   return execute.call(context, { first: () => item });
 };
 
-const now = Math.floor(Date.now() / 1000).toString();
+const now = Date.now().toString();
 const payload = { event_type: 'create', data_type: 'sleep', object_id: 'abc-123', user_id: 'user-1', event_time: '2026-09-22T12:00:00Z' };
 const rawBody = JSON.stringify(payload);
 const secret = 'test-webhook-secret';
@@ -32,7 +32,14 @@ const validate = (overrides = {}) => runCode(validateEventCode, { json: { ...pre
 assert.equal((await validate())[0].json.accepted, true);
 assert.equal((await validate({ signature: '' }))[0].json.statusCode, 401);
 assert.equal((await validate({ signature: signature.replace(/^./, '0') }))[0].json.statusCode, 401);
-assert.equal((await validate({ timestamp: String(Number(now) - 301) }))[0].json.statusCode, 401);
+assert.equal((await validate({ timestamp: String(Number(now) - 301000) }))[0].json.statusCode, 401);
+assert.equal((await validate({ timestamp: String(Number(now) + 301000) }))[0].json.statusCode, 401);
+assert.equal((await validate({ timestamp: String(Math.floor(Number(now) / 1000)) }))[0].json.statusCode, 401);
+// Actual Oura header from execution 81812; freeze receipt time to avoid aging the fixture.
+const replay = new AsyncFunction('$input', 'Date', validateEventCode);
+assert.equal((await replay({ first: () => ({ json: { ...prepared[0].json,
+  timestamp: '1790138124521', calculated_signature: signature,
+} }) }, { now: () => Date.parse('2026-09-23T04:35:26.187Z') }))[0].json.accepted, true);
 assert.equal((await validate({ body: { ...payload, data_type: 'readiness' } }))[0].json.statusCode, 400);
 assert.equal((await validate({ body: { ...payload, object_id: '../../secrets' } }))[0].json.statusCode, 400);
 

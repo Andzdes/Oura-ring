@@ -93,6 +93,10 @@ Questions опубликованной OpenAPI явно указано: данн
 
 ## Ссылки
 
+### Исправление timestamp
+
+Настоящие события Oura 81812/81813 дошли до n8n, но получили invalid_timestamp: ошибочно ожидались секунды. В событии 81812 заголовок `1790138124521` — Unix milliseconds; подпись прошла проверку. Исправлена проверка на 13 цифр и возраст в миллисекундах, исходная строка для HMAC сохранена. Опубликована версия `Fix Oura millisecond timestamp`; повторный синтетический запрос с миллисекундами принят (202). Регрессионный тест воспроизводит заголовок настоящего события с фиксированным временем получения. Старые выполнения сохраняют прежнюю ошибку; нужно смотреть новые.
+
 - [Oura API V2 OpenAPI 1.40](https://cloud.ouraring.com/v2/static/json/openapi-1.40.json)
 - [Oura API V2 Docs](https://cloud.ouraring.com/v2/docs)
 - [OAuth2 authentication](https://cloud.ouraring.com/docs/authentication)

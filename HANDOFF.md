@@ -1,5 +1,7 @@
 # Current work
 
+Latest fix: real Oura events 81812/81813 reached callback but were rejected invalid_timestamp because Oura sends 13-digit Unix milliseconds, not seconds. Fixed generator and live Validate Oura Event, published 'Fix Oura millisecond timestamp'. Signed synthetic milliseconds POST returned 202. Regression test includes actual header 1790138124521 with frozen receipt time and rejects expired/future/seconds timestamps. Genuine delivery is proven; successful processing of a fresh genuine event still needs confirmation. Do not open duplicate workflow tabs: user explicitly forbids this after conflicting editors. Only original tab 944051178 remains; extra 944051184 closed.
+
 User wants Oura asleep/awake -> Telegram emoji, tolerates 30min delay. No Antigravity this session. Be concise, act; user frustrated by excess caution and extra workflows. MUST use existing n8n workflow Oura Ring, id OSdcjaQzj3Bl0n19. Old nodes user explicitly authorized replacing. Repo task CLI task 1 In Progress.
 
 ## Completed
