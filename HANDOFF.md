@@ -10,7 +10,15 @@ User wants Oura asleep/awake -> Telegram emoji, tolerates 30min delay. No Antigr
 - User pasted same Oura Client Secret into new encrypted Crypto credential, parent named/saved Oura Webhook HMAC. Crypto2 HMAC SHA256/hex selected this credential; Fetch node selected existing OAuth Oura Ring.
 - Production callback https://8n8n.online/webhook/ plus callbackPath from private config. GET challenge valid token =>200 expected JSON; invalid=>401. POST unsigned=>401 invalid_signature. Already live.
 
-## Remaining next actions
+## Update after compaction
+
+- Signed synthetic POST accepted 202; execution 81805 succeeded through Fetch Oura Record and Summarize Oura Event. UI output confirmed real daily_activity record. Synthetic, not a genuine Oura event.
+- Registered all six create/update subscriptions for daily_activity/sleep/workout. GET list verified all six; private list saved at D:/Documents/API_Keys/oura-webhooks.subscriptions.json. Each callback challenge succeeded, executions 81806–81811.
+- Expiration returned 2026-12-22T04:26:45…; automatic renewal not yet configured. Official renew endpoint PUT /v2/webhook/subscription/renew/{id} using client headers.
+- Next: genuine notification after user adds/edits a workout in Oura; do not repeat registration or synthetic tests. Task 1 remains in progress until genuine event verified. Then discuss feasibility of current-state inference, which remains unknown; Telegram not connected.
+- Browser currently execution 81805, Summarize Oura Event modal showing successful output.
+
+## Earlier plan (items 1–2 now complete)
 
 1. Send signed synthetic POST to production callback using local Client Secret, real daily_activity object_id e1f6bcb5-1833-4424-8e08-3bb4c2e37f45, event_type update, data_type daily_activity, user_id 'local-test', event_time now. Mark clearly synthetic; no Telegram actions exist. HMAC SHA256 uppercase over timestamp seconds string + EXACT JSON body bytes. Header x-oura-signature/x-oura-timestamp. Use local secret in memory, never print it. Expect202; then inspect n8n execution to verify Fetch Oura Record and Summarize success. Raw body helper already works (unsigned401).
 2. Register Oura subscriptions via POST https://api.ouraring.com/v2/webhook/subscription, x-client-id/secret from D:/Documents/API_Keys/Oura Ring.txt lines1 and4 (0-based). Existing subscriptions GET returned [] before current changes. callback_url above, verification_token config, event_type create/update, data_type daily_activity/sleep/workout (6 subscriptions). Check schema expiration/renew endpoint, document renewal requirement. Don't duplicate if existing now.
