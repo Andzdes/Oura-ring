@@ -62,4 +62,15 @@ POST `/oura-status/api/oura` accepts `{userId, kind, data}` for `heartrate`, `da
 
 Observations older than 90 minutes or more than one minute in the future are ignored. Sleep-labelled heart rate indicates sleep; awake/workout/live heart rate, movement activity classes, completed sleep and workout records indicate awake. Rest alone is inconclusive. This is approximate inference, dependent on Oura cloud synchronization. No observation retains the previous status. Repeated states and older observations do not trigger repeated Telegram calls; changing the chosen emoji takes effect on the next recent observation. State is persisted across container restarts.
 
-Verification: `node scripts/test-oura-status.mjs`, existing chat/permission/integration checks, Docker build. n8n hookup and server deployment still pending.
+Verification: `node scripts/test-oura-status.mjs`, existing chat/permission/integration checks, Docker build.
+
+## Automation enabled — 2026-09-23
+
+The existing Oura Ring workflow now polls the latest heart rate every 30 minutes and forwards both heart rate and verified webhook records to the bridge. Both HTTP nodes use the encrypted `Oura Status Bridge` Header Auth credential. Published version: `Oura to Telegram status`.
+
+- Execution 81861: actual heart-rate API request and bridge call succeeded; the sample was older than the freshness limit, so the status stayed unchanged.
+- Execution 81862: a signed synthetic webhook referring to an existing Oura activity record completed the entire production path, including the bridge HTTP node. The historical record caused no state change.
+- Controlled synthetic sleep and awake observations sent to the deployed bridge each changed the real Telegram status; `getChat` confirmed the exact saved custom emoji ID after each change. Final status: awake. These were transport/action checks, not a natural sleep detection test.
+- `/settings` uses custom emoji entities. The user confirmed the selected pack icons after deploying commit `52281c8`.
+
+The server and n8n operate independently of the local PC. `connectTelegram` in the workflow generator reproduces the added nodes and connections without embedding secrets. Remaining maintenance: renew Oura subscriptions before their 2026-12-22 expiration.

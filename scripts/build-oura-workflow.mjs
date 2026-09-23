@@ -166,6 +166,41 @@ export function buildWorkflow(config) {
 }
 // endregion workflow-definition
 
+// region telegram-bridge
+export function connectTelegram(workflow, {userId, appUrl, headerCredential}) {
+  if (!Number.isSafeInteger(userId) || userId <= 0 || !appUrl?.startsWith('https://') || !headerCredential?.name)
+    throw new Error('Missing Telegram bridge configuration');
+  const result = structuredClone(workflow);
+  const add = entry => { if (!result.nodes.some(n => n.name === entry.name)) result.nodes.push(entry); };
+  const oauth = result.nodes.find(n => n.name === 'Fetch Oura Record')?.credentials;
+  add(node('Poll Oura Every 30 Minutes', 'n8n-nodes-base.scheduleTrigger', 1.2, [-1160,-420], {
+    rule: {interval: [{field:'minutes', minutesInterval:30}]},
+  }));
+  add(node('Check Latest Heart Rate', 'n8n-nodes-base.httpRequest', 4.2, [-800,-420], {
+    method:'GET', url:'https://api.ouraring.com/v2/usercollection/heartrate?latest=true',
+    authentication:'genericCredentialType', genericAuthType:'oAuth2Api', options:{},
+  }, oauth));
+  for (const [name, position, payload] of [
+    ['Update Telegram From Event', [1000,80], `kind: $json.data_type, data: $json.data`],
+    ['Update Telegram From Heart Rate', [-440,-420], `kind: 'heartrate', data: $json`],
+  ]) add(node(name, 'n8n-nodes-base.httpRequest', 4.2, position, {
+    method:'POST', url:appUrl.replace(/\/$/,'')+'/api/oura',
+    authentication:'genericCredentialType', genericAuthType:'httpHeaderAuth',
+    sendBody:true, specifyBody:'json', jsonBody:`={{ { userId: ${userId}, ${payload} } }}`,
+    options:{timeout:20000},
+  }, {httpHeaderAuth:headerCredential}));
+  for (const [from,to] of [
+    ['Poll Oura Every 30 Minutes','Check Latest Heart Rate'],
+    ['Check Latest Heart Rate','Update Telegram From Heart Rate'],
+    ['Summarize Oura Event','Update Telegram From Event'],
+  ]) {
+    const outputs = (result.connections[from] ??= {main:[[]]}).main;
+    if (!outputs[0].some(edge=>edge.node===to)) outputs[0].push({node:to,type:'main',index:0});
+  }
+  return result;
+}
+// endregion telegram-bridge
+
 export async function readOrCreateConfig(configPath = DEFAULT_CONFIG_PATH) {
   try {
     const config = JSON.parse(await readFile(configPath, 'utf8'));
