@@ -1,2 +1,6 @@
 # Same behavior as .gitignore.
+.task-manager/
+AGENTS.md
 docs/agents/
+project_map.md
+.projectmapignore
