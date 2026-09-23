@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Статус Oura</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+body{font:17px system-ui;margin:0;padding:28px;background:var(--tg-theme-bg-color,#fff);color:var(--tg-theme-text-color,#222)}
+main{max-width:420px;margin:auto}h1{font-size:25px}p{line-height:1.5}button{font:inherit;padding:16px;border:0;border-radius:12px;width:100%;background:var(--tg-theme-button-color,#2481cc);color:var(--tg-theme-button-text-color,#fff);cursor:pointer}button:disabled{opacity:.5}#result{white-space:pre-line}
+</style>
+<main>
+<h1>Статус Oura</h1>
+<p>Разреши боту менять эмодзи возле твоего имени: сон или бодрствование.</p>
+<button id="allow" disabled>Разрешить смену статуса</button>
+<p id="result" role="status"></p>
+</main>
+<script>
+// region permission-flow
+const app=window.Telegram?.WebApp;
+const button=document.getElementById('allow');
+const result=document.getElementById('result');
+if(!app?.initData){
+  result.textContent='Открой эту страницу кнопкой в @andrey_service_bot внутри Telegram.';
+}else if(!app.isVersionAtLeast('8.0')){
+  result.textContent='Обнови Telegram: требуется поддержка Mini Apps 8.0.';
+}else{
+  app.ready();
+  app.expand();
+  button.disabled=false;
+  button.onclick=()=>{
+    button.disabled=true;
+    app.requestEmojiStatusAccess(granted=>{
+      result.textContent=granted?'Разрешение получено. Бот может менять твой эмодзи-статус.':'Разрешение не получено. Можно попробовать снова.';
+      button.disabled=false;
+    });
+  };
+}
+// endregion permission-flow
+</script>
+</html>
