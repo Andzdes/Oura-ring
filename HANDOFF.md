@@ -41,3 +41,5 @@ Use mcp__cua_repl. Persistent handles browser2 id2 Chrome; flowTab cua/flowPw pl
 Chrome import chooser failed Not allowed -> clipboard.writeText(JSON.stringify(nodes,connections)) and Control_L+v works. CodeMirror fill/pressSequentially APPENDS; use cua click index, pressKey Control_L+a, typeText then verify AX. For nodes use locator('[data-test-id="canvas-node"]').filter({hasText:exactName}).dblclick(); Zoom to Fit first if offscreen. getByTestId defaults wrong data-testid. UI auto-saves. Publish button opens modal. GET/POST share path different methods.
 
 Crypto credential has client secret encrypted; OAuth still works. Don't read browser hidden state or use shell authenticated n8n private APIs. Shell direct Oura API with authorized local key is allowed. Tests valid token and unsigned POST are already done; don't repeat unnecessarily.
+
+Task5 completed: permission button fixed. Calls native requestEmojiStatusAccess on open; granted disables+labels button, denied enables retry. Permission dialog may appear if absent. Public HTML updated without server restart; regression and integration tests pass.

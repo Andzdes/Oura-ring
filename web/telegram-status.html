@@ -60,8 +60,24 @@ el('save').onclick=async()=>{el('save').disabled=true;try{await api('preferences
 if(!app?.initData){result.textContent='Открой эту страницу кнопкой в @andrey_service_bot внутри Telegram.';}
 else if(!app.isVersionAtLeast('8.0')){result.textContent='Обнови Telegram: требуется поддержка Mini Apps 8.0.';}
 else{
-  app.ready();app.expand();el('allow').disabled=false;load();
-  el('allow').onclick=()=>{el('allow').disabled=true;app.requestEmojiStatusAccess(granted=>{result.textContent=granted?'Разрешение получено. Бот может менять твой эмодзи-статус.':'Разрешение не получено. Можно попробовать снова.';el('allow').disabled=false;});};
+  app.ready();app.expand();load();
+  const checkAccess=()=>{
+    el('allow').disabled=true;
+    el('allow').textContent='Проверяю разрешение…';
+    try{
+      app.requestEmojiStatusAccess(granted=>{
+        el('allow').disabled=granted;
+        el('allow').textContent=granted?'Смена статуса разрешена':'Разрешить смену статуса';
+        if(!granted)result.textContent='Разрешение не получено. Можно попробовать снова.';
+      });
+    }catch{
+      el('allow').disabled=false;
+      el('allow').textContent='Разрешить смену статуса';
+      result.textContent='Не удалось проверить разрешение. Нажми кнопку ещё раз.';
+    }
+  };
+  el('allow').onclick=checkAccess;
+  checkAccess();
 }
 // #endregion permission-flow
 </script>
