@@ -6,7 +6,7 @@ import {makeChatBot} from './telegram-chat.mjs';
 // region chat-flow-tests
 const directory=await mkdtemp(join(tmpdir(),'oura-chat-test-'));
 const sent=[];
-const api=async(method,body)=>{if(method==='sendMessage'){sent.push(body);return true;}if(method==='getCustomEmojiStickers')return body.custom_emoji_ids.map(id=>({custom_emoji_id:id,emoji:'😴'}));throw new Error(method);};
+const api=async(method,body)=>{if(method==='sendMessage'){sent.push(body);return {message_id:sent.length};}if(['answerCallbackQuery','editMessageReplyMarkup'].includes(method))return true;if(method==='getCustomEmojiStickers')return body.custom_emoji_ids.map(id=>({custom_emoji_id:id,emoji:'😴'}));throw new Error(method);};
 let bot=makeChatBot({api,directory,appUrl:'https://example.test/oura-status'});
 let update=0;
 const message=(text,id=123,entities=[])=>({update_id:++update,message:{chat:{id,type:'private'},from:{id},text,entities}});
@@ -24,7 +24,13 @@ try{
  await bot.confirmAccess(123);await bot.confirmAccess(123);
  const settings=JSON.parse(await readFile(join(directory,'123.json')));assert.equal(settings.awake.id,'100');assert.equal(settings.sleep.id,'99');assert.ok(settings.accessReportedAt);
  await bot.handle(message('/settings'));assert.match(sent.at(-1).text,/Сон:/);
- await bot.handle(message('/sleep'));await bot.handle(message('/cancel'));assert.equal(JSON.parse(await readFile(join(directory,'123.json'))).pending,undefined);
+ await bot.handle(message('/sleep'));
+ const oldButton=sent.at(-1).reply_markup.inline_keyboard[0][0];assert.equal(oldButton.text,'Cancel');
+ await bot.handle(message('/awake'));
+ const button=sent.at(-1).reply_markup.inline_keyboard[0][0];
+ const callback=data=>({update_id:++update,callback_query:{id:String(update),from:{id:123},message:{chat:{id:123,type:'private'}},data}});
+ await bot.handle(callback(oldButton.callback_data));assert.equal(JSON.parse(await readFile(join(directory,'123.json'))).pending,'awake');
+ await bot.handle(callback(button.callback_data));assert.equal(JSON.parse(await readFile(join(directory,'123.json'))).pending,undefined);
  console.log('PASS start/Connect, native custom emoji capture, user isolation, duplicate delivery, persistence, access confirmation, settings/cancel');
 }finally{await rm(directory,{recursive:true,force:true});}
 // endregion chat-flow-tests

@@ -6,6 +6,10 @@ import { randomUUID } from 'node:crypto';
 export function makeChatBot({api, directory, appUrl}) {
   const queues=new Map();
   const send=(userId,text,extra={})=>api('sendMessage',{chat_id:userId,text,...extra});
+  async function clearPending(userId,settings){
+    if(settings.pendingPrompt)await api('editMessageReplyMarkup',{chat_id:userId,message_id:settings.pendingPrompt,reply_markup:{inline_keyboard:[]}}).catch(()=>{});
+    delete settings.pending;delete settings.pendingToken;delete settings.pendingPrompt;
+  }
   async function withUser(userId,action){
     const previous=queues.get(userId)||Promise.resolve();
     const next=previous.catch(()=>{}).then(async()=>{
@@ -24,21 +28,31 @@ export function makeChatBot({api, directory, appUrl}) {
     try{return await next;}finally{if(queues.get(userId)===next)queues.delete(userId);}
   }
   async function handle(update){
+    const callback=update.callback_query;
+    if(callback){
+      if(callback.message?.chat?.type!=='private'||callback.from?.id!==callback.message.chat.id)return;
+      return withUser(callback.from.id,async(settings,save)=>{
+        const matches=settings.pending && callback.data===`cancel:${settings.pendingToken}`;
+        await api('answerCallbackQuery',{callback_query_id:callback.id,text:matches?'Выбор отменён.':'Этот выбор уже завершён.'});
+        if(matches){await clearPending(callback.from.id,settings);await save();}
+      });
+    }
     const message=update.message;
     if(message?.chat?.type!=='private'||message.from?.is_bot||message.from?.id!==message.chat.id)return;
     const userId=message.from.id;
     return withUser(userId,async(settings,save)=>{
       if(Number.isInteger(settings.lastUpdateId)&&update.update_id<=settings.lastUpdateId)return;
       const text=message.text||'';
-      const command=text.match(/^\/(start|connect|sleep|awake|settings|cancel)(?:@[A-Za-z0-9_]+)?(?:\s|$)/)?.[1];
+      const command=text.match(/^\/(start|connect|sleep|awake|settings)(?:@[A-Za-z0-9_]+)?(?:\s|$)/)?.[1];
       if(command==='start'||command==='connect'){
-        delete settings.pending;
+        await clearPending(userId,settings);
         await send(userId,'Разреши боту менять твой эмодзи-статус.',{reply_markup:{inline_keyboard:[[{text:'Connect',web_app:{url:appUrl}}]]}});
       }else if(command==='sleep'||command==='awake'){
+        await clearPending(userId,settings);
         settings.pending=command;
-        await send(userId,command==='sleep'?'Отправь эмодзи для сна.':'Отправь эмодзи для бодрствования.');
-      }else if(command==='cancel'){
-        delete settings.pending;await send(userId,'Выбор отменён.');
+        settings.pendingToken=randomUUID();
+        const prompt=await send(userId,command==='sleep'?'Отправь эмодзи для сна.':'Отправь эмодзи для бодрствования.',{reply_markup:{inline_keyboard:[[{text:'Cancel',callback_data:`cancel:${settings.pendingToken}`}]]}});
+        settings.pendingPrompt=prompt.message_id;
       }else if(command==='settings'){
         await send(userId,`Сон: ${settings.sleep?.emoji||'не выбран'}\nБодрствование: ${settings.awake?.emoji||'не выбран'}\n\n/sleep — выбрать для сна\n/awake — выбрать для бодрствования`);
       }else if(text.startsWith('/')){
@@ -46,7 +60,7 @@ export function makeChatBot({api, directory, appUrl}) {
       }else if(settings.pending){
         const entities=(message.entities||[]).filter(e=>e.type==='custom_emoji');
         if(entities.length!==1){
-          await send(userId,'Отправь один кастомный эмодзи из палитры Telegram. /cancel — отмена.');
+          await send(userId,'Отправь один кастомный эмодзи из палитры Telegram.');
         }else{
           const entity=entities[0];
           const stickers=await api('getCustomEmojiStickers',{custom_emoji_ids:[entity.custom_emoji_id]});
@@ -55,7 +69,7 @@ export function makeChatBot({api, directory, appUrl}) {
           else{
             const state=settings.pending;
             settings[state]={id:entity.custom_emoji_id,emoji:sticker.emoji||text.slice(entity.offset,entity.offset+entity.length),image:null};
-            delete settings.pending;
+            await clearPending(userId,settings);
             await send(userId,state==='sleep'?'Эмодзи для сна сохранён.':'Эмодзи для бодрствования сохранён.');
           }
         }
