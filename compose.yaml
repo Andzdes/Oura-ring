@@ -4,8 +4,10 @@ services:
     restart: unless-stopped
     init: true
     env_file: .env
-    ports:
-      - "127.0.0.1:${BIND_PORT:-8766}:8766"
+    networks:
+      gateway-net:
+        aliases:
+          - oura-status-bot
     environment:
       PUBLIC_APP_URL: ${PUBLIC_APP_URL:?Set the public HTTPS URL ending in /oura-status}
       HOST: 0.0.0.0
@@ -22,3 +24,6 @@ services:
       - /tmp
 volumes:
   bot-data:
+networks:
+  gateway-net:
+    external: true

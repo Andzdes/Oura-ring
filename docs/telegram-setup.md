@@ -49,3 +49,9 @@ Server session56228 replaces93757. Still depends on this PC/Tailscale. Real Tele
 Task8: cancel is now a contextual inline Cancel button on sleep/awake prompts, not a slash command. Command lists updated and verified in all configured scopes/languages. Selection tokens prevent stale cancellation. Callback queries enabled in webhook. Server session59722.
 
 Task9 UX: already-approved access shows a stable 'Разрешение уже выдано' page. Approval through explicit button retains automatic close. /start for previously connected users omits Connect; tracked connection prompt is edited after approval. Server session73754.
+
+## Server cutover verified
+
+Public HTTPS health200 at https://oura.8n8n.online/oura-status/health. Existing sleep/awake custom emoji selections migrated through service-signed authenticated preferences request (one-time backend migration, not a captured Telegram session). Telegram webhook switched to https://oura.8n8n.online/oura-status/telegram-webhook with same secret, allowed_updates message/callback_query. BotFather Main App URL edited via native UI and reopened to verify saved URL. Actual user /settings sent via Telegram Desktop at01:57 returned both migrated choices from server. getChat confirmed current status matched saved awake emoji; idempotent setUserEmojiStatus returnedtrue. Local server73754 stopped after server reply confirmed.
+
+Task1 markedDone: latest real Oura execution81856 at01:21:49 succeeded, multiple earlier successes. Task4 still needed: approximate state inference and server-side status action connected to existing n8n workflow. Task11 persistent gateway-net Compose changes tested locally and ready for user git pull/rebuild; no SSH edits performed. Old server Compose manual network attachment survives only until container recreation.

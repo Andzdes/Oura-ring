@@ -3,5 +3,6 @@
 !scripts/
 !scripts/serve-telegram-miniapp.mjs
 !scripts/telegram-chat.mjs
+!scripts/configure-telegram.mjs
 !web/
 !web/telegram-status.html
